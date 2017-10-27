@@ -1,0 +1,127 @@
+<html>
+<head>
+	<meta name="author" content="Anonymous">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+	<title>SD-GAN Demo</title>
+
+    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+
+	<link rel="stylesheet" type="text/css" href="css/sdgan.css">
+</head>
+
+<body>
+
+<div id="content">
+
+<h1>SD-GAN Demo</h1>
+
+<div id="canceled" hidden>
+	<p>Please try again on a different browser or refresh if you change your mind :)</p>
+</div>
+
+<div id="demo">
+	<h3>Chris Donahue, Akshay Balsubramani, Julian McAuley, Zachary C. Lipton</h3>
+	<p>
+	This is an interactive demo for the SD-BEGAN model from <i>Semantically Decomposing the Latent Spaces of Generative Adversarial Networks</i> (<a href="https://arxiv.org/abs/1705.07904">arXiv</a>, <a href="https://arxiv.org/pdf/1705.07904.pdf">pdf</a>, <a href="https://github.com/chrisdonahue/sdgan">code</a>). This demo runs a neural network in your browser; it may take some time to render. <span id="webgl" hidden>For best performance, please use a GPU and <a href="https://superuser.com/a/836833">enable WebGL</a>.</span>
+	</p>
+	<p>
+		SD-GANs learn a latent representation that disentangles <i>identity</i> (ID) from the contingent factors of an <i>observation</i> (Obs). They can generate images that appear to depict the same person but vary in lighting, pose, expression, etc. Furthermore, they can generate images that depict distinct identities in the same contingent circumstances.
+	<p>
+
+	<h3>Instructions</h3>
+	<p>
+		The left matrix depicts all combinations between four distinct identities (rows) and four distinct observations (columns). The right matrix depicts a linear interpolation of both the identity and observation vectors for a pair of images selected from the left matrix.
+	</p>
+
+	<p><b>Press</b> the buttons on the rows/columns in the left matrix to randomize identities/observations.</p>
+	<p><b>Select</b> two images in the left matrix to see their interpolation in the right.</p>
+
+	<div id="grids" class="noselect">
+	<table id="zizo">
+		<tr>
+			<th><button type="button" style="height:64px;width:64px" id="b_all" disabled>Change<br>All</button></th>
+			<th><button type="button" style="height:64px;width:64px" id="b_o0" disabled>Change<br>Obs 1</button></th>
+			<th><button type="button" style="height:64px;width:64px" id="b_o1" disabled>Change<br>Obs 2</button></th>
+			<th><button type="button" style="height:64px;width:64px" id="b_o2" disabled>Change<br>Obs 3</button></th>
+			<th><button type="button" style="height:64px;width:64px" id="b_o3" disabled>Change<br>Obs 4</button></th>
+		</tr>
+		<tr>
+			<th><button type="button" style="height:64px;width:64px" id="b_i0" disabled>Change<br>ID 1</button></th>
+			<th><canvas id="c_i0_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i0_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i0_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i0_o3" height="64" width="64"></canvas></th>
+		</tr>
+		<tr>
+			<th><button type="button" style="height:64px;width:64px" id="b_i1" disabled>Change<br>ID 2</button></th>
+			<th><canvas id="c_i1_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i1_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i1_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i1_o3" height="64" width="64"></canvas></th>
+		</tr>
+		<tr>
+			<th><button type="button" style="height:64px;width:64px" id="b_i2" disabled>Change<br>ID 3</button></th>
+			<th><canvas id="c_i2_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i2_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i2_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i2_o3" height="64" width="64"></canvas></th>
+		</tr>
+		<tr>
+			<th><button type="button" style="height:64px;width:64px" id="b_i3" disabled>Change<br>ID 4</button></th>
+			<th><canvas id="c_i3_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i3_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i3_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_i3_o3" height="64" width="64"></canvas></th>
+		</tr>
+	</table>
+
+	<table id="lerp">
+		<tr>
+			<th height="64px" width="64px"></th>
+			<th height="64px" width="64px">Obs A</th>
+			<th height="64px" colspan="2"><img src="img/arrow_hor.png"></th>
+			<th height="64px" width="64px">Obs B</th>
+		</tr>
+		<tr>
+			<th height="64px" width="64px">ID A</th>
+			<th><canvas id="c_lerp_i0_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i0_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i0_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i0_o3" height="64" width="64"></canvas></th>
+		</tr>
+		<tr>
+			<th height="64px" width="64px" rowspan="2"><img src="img/arrow_ver.png"></th>
+			<th><canvas id="c_lerp_i1_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i1_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i1_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i1_o3" height="64" width="64"></canvas></th>
+		</tr>
+		<tr>
+			<th><canvas id="c_lerp_i2_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i2_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i2_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i2_o3" height="64" width="64"></canvas></th>
+		</tr>
+		<tr>
+			<th height="64px" width="64px">ID B</th>
+			<th><canvas id="c_lerp_i3_o0" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i3_o1" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i3_o2" height="64" width="64"></canvas></th>
+			<th><canvas id="c_lerp_i3_o3" height="64" width="64"></canvas></th>
+		</tr>
+	</table>
+	</div>
+</div>
+
+</div>
+
+<script type="text/javascript" src="js/deeplearn-0.3.2.min.js"></script>
+<script type="text/javascript" src="js/sdgan_cfg.js"></script>
+<script type="text/javascript" src="js/sdgan_reqs.js"></script>
+<script type="text/javascript" src="js/sdgan_net.js"></script>
+<script type="text/javascript" src="js/sdgan_ui.js"></script>
+
+</body>
+</html>
