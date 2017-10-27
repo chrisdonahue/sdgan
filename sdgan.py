@@ -239,13 +239,10 @@ def train(
     D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
 
     alpha = tf.random_uniform(shape=[batch_size, 1, 1, 1, 1], minval=0., maxval=1.)
-    differences = G_z - y
-    interpolates = y + (alpha * differences)
+    differences = G_z - x
+    interpolates = x + (alpha * differences)
     with tf.name_scope('D_interp'), tf.variable_scope('D', reuse=True):
-      D_interp = SDDCGANDiscriminator64x64(
-          interpolates, y,
-          decomp_strat=D_decomp_strat, nids=nids,
-          dim=D_dim, batchnorm=D_batchnorm, siamese_strat=D_siamese_strat)
+      D_interp = SDDCGANDiscriminator64x64(interpolates, dim=D_dim, siamese=D_siamese)
 
     LAMBDA = 10
     gradients = tf.gradients(D_interp, [interpolates])[0]
@@ -481,7 +478,7 @@ if __name__ == '__main__':
       help='If false, stack channels rather than Siamese encoding')
   parser.add_argument('--train_disc_nupdates', type=int,
       help='Number of discriminator updates per generator update')
-  parser.add_argument('--train_loss', type=str, choices=['dcgan', 'lsgan', 'wgan'],
+  parser.add_argument('--train_loss', type=str, choices=['dcgan', 'wgan', 'wgan-gp'],
       help='Which GAN loss to use')
   parser.add_argument('--train_save_secs', type=int,
       help='How often to save model')
