@@ -1,5 +1,7 @@
 import argparse
 
+import tensorflow as tf
+
 
 # Decode bool argument
 def str2bool(v):
@@ -25,10 +27,10 @@ def decode_png_observation(png_fp):
 
 
 # Encode [-1, 1] float to uint8
-def encode_png_observation(png):
+def encode_png_observation(png, name=None):
   png += 1.
   png /= 2.
   png *= 256.
   png = tf.clip_by_value(png, 0., 255.)
 
-  return tf.cast(png, tf.uint8)
+  return tf.cast(png, tf.uint8, name=name)
