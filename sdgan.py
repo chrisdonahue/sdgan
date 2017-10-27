@@ -219,6 +219,11 @@ def train(
     ))
 
     D_loss /= 2.
+  elif loss == 'lsgan':
+    G_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
+    D_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
+    D_loss += tf.reduce_mean(D_x ** 2)
+    D_loss /= 2.
   elif loss == 'wgan':
     G_loss = -tf.reduce_mean(D_G_z)
     D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
@@ -264,22 +269,28 @@ def train(
     D_opt = tf.train.AdamOptimizer(
         learning_rate=2e-4,
         beta1=0.5)
-  elif opt == 'wgan':
+  elif opt == 'lsgan':
     G_opt = tf.train.RMSPropOptimizer(
-      learning_rate=5e-5)
+        learning_rate=1e-4)
 
     D_opt = tf.train.RMSPropOptimizer(
-      learning_rate=5e-5)
+        learning_rate=1e-4)
+  elif opt == 'wgan':
+    G_opt = tf.train.RMSPropOptimizer(
+        learning_rate=5e-5)
+
+    D_opt = tf.train.RMSPropOptimizer(
+        learning_rate=5e-5)
   elif opt == 'wgan-gp':
     G_opt = tf.train.AdamOptimizer(
-      learning_rate=1e-4,
-      beta1=0.5,
-      beta2=0.9)
+        learning_rate=1e-4,
+        beta1=0.5,
+        beta2=0.9)
 
     D_opt = tf.train.AdamOptimizer(
-      learning_rate=1e-4,
-      beta1=0.5,
-      beta2=0.9)
+        learning_rate=1e-4,
+        beta1=0.5,
+        beta2=0.9)
   else:
     raise NotImplementedError()
 
@@ -478,7 +489,7 @@ if __name__ == '__main__':
       help='If false, stack channels rather than Siamese encoding')
   parser.add_argument('--train_disc_nupdates', type=int,
       help='Number of discriminator updates per generator update')
-  parser.add_argument('--train_loss', type=str, choices=['dcgan', 'wgan', 'wgan-gp'],
+  parser.add_argument('--train_loss', type=str, choices=['dcgan', 'lsgan', 'wgan', 'wgan-gp'],
       help='Which GAN loss to use')
   parser.add_argument('--train_save_secs', type=int,
       help='How often to save model')
