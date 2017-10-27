@@ -1,0 +1,191 @@
+{
+  "fig1/grid_zis": {
+    "filename": "fig1_grid_zis", 
+    "shape": [
+      4, 
+      50
+    ]
+  }, 
+  "fig1/grid_zos": {
+    "filename": "fig1_grid_zos", 
+    "shape": [
+      4, 
+      50
+    ]
+  }, 
+  "fig1/grid_Gzs": {
+    "filename": "fig1_grid_Gzs", 
+    "shape": [
+      4, 
+      4, 
+      64, 
+      64, 
+      3
+    ]
+  }, 
+  "fig1/lerp_zs": {
+    "filename": "fig1_lerp_zs", 
+    "shape": [
+      2, 
+      100
+    ]
+  },
+  "fig1/lerp_Gzs": {
+    "filename": "fig1_lerp_Gzs", 
+    "shape": [
+      4, 
+      4, 
+      64, 
+      64, 
+      3
+    ]
+  }, 
+  "G/Conv/biases": {
+    "filename": "G_Conv_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv/weights": {
+    "filename": "G_Conv_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_1/biases": {
+    "filename": "G_Conv_1_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_1/weights": {
+    "filename": "G_Conv_1_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_2/biases": {
+    "filename": "G_Conv_2_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_2/weights": {
+    "filename": "G_Conv_2_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_3/biases": {
+    "filename": "G_Conv_3_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_3/weights": {
+    "filename": "G_Conv_3_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_4/biases": {
+    "filename": "G_Conv_4_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_4/weights": {
+    "filename": "G_Conv_4_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_5/biases": {
+    "filename": "G_Conv_5_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_5/weights": {
+    "filename": "G_Conv_5_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_6/biases": {
+    "filename": "G_Conv_6_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_6/weights": {
+    "filename": "G_Conv_6_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_7/biases": {
+    "filename": "G_Conv_7_biases", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/Conv_7/weights": {
+    "filename": "G_Conv_7_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      128
+    ]
+  }, 
+  "G/Conv_8/biases": {
+    "filename": "G_Conv_8_biases", 
+    "shape": [
+      3
+    ]
+  }, 
+  "G/Conv_8/weights": {
+    "filename": "G_Conv_8_weights", 
+    "shape": [
+      3, 
+      3, 
+      128, 
+      3
+    ]
+  }, 
+  "G/fully_connected/biases": {
+    "filename": "G_fully_connected_biases", 
+    "shape": [
+      8192
+    ]
+  }, 
+  "G/fully_connected/weights": {
+    "filename": "G_fully_connected_weights", 
+    "shape": [
+      100, 
+      8192
+    ]
+  }
+}
