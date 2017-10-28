@@ -1,4 +1,8 @@
 *.pyc
 .*
+assets/
 data
+debug.sh
 train
+web/bundle
+web/ckpts
