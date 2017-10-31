@@ -1,6 +1,6 @@
 # SD-GAN Tensorflow
 
-Tensorflow implementation of *Semantically Decomposing the Latent Spaces of Generative Adversarial Networks* ([arXiv](https://arxiv.org/abs/1705.07904)).
+Implementation of *Semantically Decomposing the Latent Spaces of Generative Adversarial Networks* ([arXiv](https://arxiv.org/abs/1705.07904), [demo](https://chrisdonahue.github.io/sdgan)).
 
 Semantically decomposed GANs (SD-GANs) learn a decomposed latent space separating *identity* from the other contingent aspects of *observations*. In our [paper](https://arxiv.org/pdf/1705.07904.pdf), we demonstrate that SD-GANs can disentangle factors of variation corresponding to identity from photographs of celebrity faces and shoes. SD-GANs are especially applicable for datasets with *many labels* but *few observations* of each. Example results from an SD-GAN model; each row shares an identity and each column shares contingent factors:
 
