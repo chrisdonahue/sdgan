@@ -610,7 +610,7 @@ if __name__ == '__main__':
   elif args.mode == 'preview':
     split = None
   elif args.mode == 'infer':
-    split = None
+    split = 'train'
   else:
     raise NotImplementedError()
 
