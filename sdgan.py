@@ -2,6 +2,7 @@ from collections import defaultdict
 import cPickle as pickle
 import math
 import os
+import time
 
 import tensorflow as tf
 
@@ -84,6 +85,7 @@ def group_choose_k(
   tf.summary.scalar('tuples_queue_size', tuple_q.size())
 
   return tuple_q.dequeue()
+
 
 """
   Trains an SD-GAN
@@ -316,6 +318,78 @@ def train(
 
 
 """
+  Visualizes a fixed set of random latent vectors during training
+"""
+def preview(
+    train_dir,
+    nids,
+    nobs):
+  from scipy.misc import imsave
+
+  preview_dir = os.path.join(train_dir, 'preview')
+  if not os.path.isdir(preview_dir):
+    os.makedirs(preview_dir)
+
+  # Set seed (same zi/zo on restart)
+  tf.set_random_seed(0)
+
+  # Load graph
+  infer_metagraph_fp = os.path.join(train_dir, 'infer', 'infer.meta')
+  graph = tf.get_default_graph()
+  saver = tf.train.import_meta_graph(infer_metagraph_fp)
+
+  # Sample z_i and z_o
+  id_feeds = {}
+  id_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = nids
+  id_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = nobs
+  id_fetches = {}
+  id_fetches['zis'] = graph.get_tensor_by_name('samp_zi:0')
+  id_fetches['zos'] = graph.get_tensor_by_name('samp_zo:0')
+  with tf.Session() as sess:
+    _id_fetches = sess.run(id_fetches, id_feeds)
+
+  # Save z_i and z_o
+  with open(os.path.join(preview_dir, 'zizo.pkl'), 'wb') as f:
+    pickle.dump(_id_fetches, f)
+
+  # Set up graph for generating preview images
+  feeds = {}
+  feeds[graph.get_tensor_by_name('zi:0')] = _id_fetches['zis']
+  feeds[graph.get_tensor_by_name('zo:0')] = _id_fetches['zos']
+  fetches =  {}
+  fetches['step'] = tf.train.get_or_create_global_step()
+  grid_prev = graph.get_tensor_by_name('G_z_grid_prev:0')
+  fetches['G_z_grid'] = grid_prev
+
+  # Summarize
+  fetches['G_z_grid_summary'] = tf.summary.image('preview/grid', tf.expand_dims(grid_prev, axis=0), max_outputs=1)
+  summary_writer = tf.summary.FileWriter(preview_dir)
+
+  # Loop, waiting for checkpoints
+  ckpt_fp = None
+  while True:
+    latest_ckpt_fp = tf.train.latest_checkpoint(train_dir)
+    if latest_ckpt_fp != ckpt_fp:
+      print 'Preview: {}'.format(latest_ckpt_fp)
+
+      with tf.Session() as sess:
+        saver.restore(sess, latest_ckpt_fp)
+
+        _fetches = sess.run(fetches, feeds)
+
+      preview_fp = os.path.join(preview_dir, '{}.png'.format(_fetches['step']))
+      imsave(preview_fp, _fetches['G_z_grid'])
+
+      summary_writer.add_summary(_fetches['G_z_grid_summary'], _fetches['step'])
+
+      print 'Done'
+
+      ckpt_fp = latest_ckpt_fp
+
+    time.sleep(1)
+
+
+"""
   Generates two-stage inference metagraph to train_dir/infer/infer.meta:
     1) Sample zi/zo
     2) Execute G([zi;zo])
@@ -460,7 +534,7 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('mode', type=str, choices=['train', 'infer'])
+  parser.add_argument('mode', type=str, choices=['train', 'preview', 'infer'])
   parser.add_argument('train_dir', type=str,
       help='Training directory')
   parser.add_argument('--data_dir', type=str,
@@ -495,6 +569,10 @@ if __name__ == '__main__':
       help='How often to save model')
   parser.add_argument('--train_summary_secs', type=int,
       help='How often to report summaries')
+  parser.add_argument('--preview_nids', type=int,
+      help='Number of distinct identity vectors to preview')
+  parser.add_argument('--preview_nobs', type=int,
+      help='Number of distinct observation vectors to preview')
 
   parser.set_defaults(
     data_dir=None,
@@ -512,11 +590,11 @@ if __name__ == '__main__':
     train_disc_nupdates=1,
     train_loss='dcgan',
     train_save_secs=300,
-    train_summary_secs=120)
+    train_summary_secs=120,
+    preview_nids=6,
+    preview_nobs=8)
 
   args = parser.parse_args()
-
-  print args
 
   # Make train dir
   if not os.path.isdir(args.train_dir):
@@ -525,6 +603,8 @@ if __name__ == '__main__':
   # Assign appropriate split for mode
   if args.mode == 'train':
     split = 'train'
+  elif args.mode == 'preview':
+    split = None
   elif args.mode == 'infer':
     split = None
   else:
@@ -537,12 +617,13 @@ if __name__ == '__main__':
     height = 64
     width = 64
     nch = 3
-  elif args.dataset == 'shoes4k':
+  elif args.data_set == 'shoes4k':
     data_extension = 'png'
     fname_to_named_id = lambda fn: fn.rsplit('_', 2)[0]
     height = 64
     width = 64
     nch = 3
+  else:
     raise NotImplementedError()
 
   # Find group fps and make splits
@@ -603,6 +684,11 @@ if __name__ == '__main__':
         D_iters=args.train_disc_nupdates,
         save_secs=args.train_save_secs,
         summary_secs=args.train_summary_secs)
+  elif args.mode == 'preview':
+    preview(
+      args.train_dir,
+      args.preview_nids,
+      args.preview_nobs)
   elif args.mode == 'infer':
     infer(
         args.train_dir,

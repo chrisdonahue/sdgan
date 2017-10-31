@@ -24,6 +24,7 @@ Run training:
 1. Navigate to: `sdgan`
 1. Run training: `./train.sh`
 1. Navigate to: `sdgan/train`
+1. (*Optional*) Run grid visualization: `./prev.sh`
 1. Run tensorboard: `tensorboard --logdir=.`
 
 ### Requirements
