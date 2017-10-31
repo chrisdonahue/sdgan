@@ -330,27 +330,31 @@ def preview(
   if not os.path.isdir(preview_dir):
     os.makedirs(preview_dir)
 
-  # Set seed (same zi/zo on restart)
-  tf.set_random_seed(0)
-
   # Load graph
   infer_metagraph_fp = os.path.join(train_dir, 'infer', 'infer.meta')
   graph = tf.get_default_graph()
   saver = tf.train.import_meta_graph(infer_metagraph_fp)
 
-  # Sample z_i and z_o
-  samp_feeds = {}
-  samp_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = nids
-  samp_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = nobs
-  samp_fetches = {}
-  samp_fetches['zis'] = graph.get_tensor_by_name('samp_zi:0')
-  samp_fetches['zos'] = graph.get_tensor_by_name('samp_zo:0')
-  with tf.Session() as sess:
-    _samp_fetches = sess.run(samp_fetches, samp_feeds)
+  # Generate or restore z_i and z_o
+  zizo_fp = os.path.join(preview_dir, 'zizo.pkl')
+  if os.path.exists(zizo_fp):
+    # Restore z_i and z_o
+    with open(zizo_fp, 'rb') as f:
+      _samp_fetches = pickle.load(f)
+  else:
+    # Sample z_i and z_o
+    samp_feeds = {}
+    samp_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = nids
+    samp_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = nobs
+    samp_fetches = {}
+    samp_fetches['zis'] = graph.get_tensor_by_name('samp_zi:0')
+    samp_fetches['zos'] = graph.get_tensor_by_name('samp_zo:0')
+    with tf.Session() as sess:
+      _samp_fetches = sess.run(samp_fetches, samp_feeds)
 
-  # Save z_i and z_o
-  with open(os.path.join(preview_dir, 'zizo.pkl'), 'wb') as f:
-    pickle.dump(_samp_fetches, f)
+    # Save z_i and z_o
+    with open(zizo_fp, 'wb') as f:
+      pickle.dump(_samp_fetches, f)
 
   # Set up graph for generating preview images
   feeds = {}
