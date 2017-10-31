@@ -53,7 +53,7 @@ def group_choose_k(
     # Find unique tuples
     tuple_unique = tf.ones([n], tf.bool)
     for i in xrange(k):
-      for j in range(k):
+      for j in xrange(k):
         if i == j:
           continue
         pair_unique = tf.not_equal(tuple_ids[:, i], tuple_ids[:, j])
