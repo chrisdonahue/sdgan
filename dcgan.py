@@ -9,7 +9,7 @@ _DTYPE = tf.float32
   z shape during training: [b * k, d_i + d_o]
   z shape during inference: [None, d_i + d_o]
 """
-def DCGANGenerator64x64(z, nch, dim=128, batchnorm=True, train=True):
+def DCGANGenerator64x64(z, nch, dim=128, batchnorm=True, train=False):
   _G_DIM_MUL = [8, 4, 2, 1]
   _G_IMG_DIM_INIT = 4
 
@@ -55,6 +55,16 @@ def DCGANGenerator64x64(z, nch, dim=128, batchnorm=True, train=True):
         padding='SAME',
         kernel_initializer=weight_init)
   outputs = tf.nn.tanh(outputs)
+
+  # Update batchnorm moving statistics
+  # NOTE: Only one generator in graph should have train=True
+  # NOTE: Incompatible with graphs containing other UPDATE_OPS
+  if train:
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    if len(update_ops) != 8:
+      raise Exception('Other update ops found in graph')
+    with tf.control_dependencies(update_ops):
+      outputs = tf.identity(outputs)
 
   return outputs
 

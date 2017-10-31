@@ -160,7 +160,7 @@ def train(
   # Make generator
   with tf.variable_scope('G'):
     z = tf.reshape(z, [batch_size * k, d_i + d_o])
-    G_z = DCGANGenerator64x64(z, nch, dim=G_dim)
+    G_z = DCGANGenerator64x64(z, nch, dim=G_dim, train=True)
     G_z = tf.reshape(G_z, [batch_size, k, height, width, nch])
   G_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='G')
 
@@ -509,7 +509,7 @@ def infer(
   G_z_grid_prev = tf.reshape(G_z_grid_prev, [zi_n * height, grid_zo_n * width, nch], name='G_z_grid_prev')
 
   # Create saver
-  G_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='G')
+  G_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='G')
   global_step = tf.train.get_or_create_global_step()
   saver = tf.train.Saver(G_vars + [global_step])
 
