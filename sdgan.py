@@ -339,23 +339,23 @@ def preview(
   saver = tf.train.import_meta_graph(infer_metagraph_fp)
 
   # Sample z_i and z_o
-  id_feeds = {}
-  id_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = nids
-  id_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = nobs
-  id_fetches = {}
-  id_fetches['zis'] = graph.get_tensor_by_name('samp_zi:0')
-  id_fetches['zos'] = graph.get_tensor_by_name('samp_zo:0')
+  samp_feeds = {}
+  samp_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = nids
+  samp_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = nobs
+  samp_fetches = {}
+  samp_fetches['zis'] = graph.get_tensor_by_name('samp_zi:0')
+  samp_fetches['zos'] = graph.get_tensor_by_name('samp_zo:0')
   with tf.Session() as sess:
-    _id_fetches = sess.run(id_fetches, id_feeds)
+    _samp_fetches = sess.run(samp_fetches, samp_feeds)
 
   # Save z_i and z_o
   with open(os.path.join(preview_dir, 'zizo.pkl'), 'wb') as f:
-    pickle.dump(_id_fetches, f)
+    pickle.dump(_samp_fetches, f)
 
   # Set up graph for generating preview images
   feeds = {}
-  feeds[graph.get_tensor_by_name('zi:0')] = _id_fetches['zis']
-  feeds[graph.get_tensor_by_name('zo:0')] = _id_fetches['zos']
+  feeds[graph.get_tensor_by_name('zi:0')] = _samp_fetches['zis']
+  feeds[graph.get_tensor_by_name('zo:0')] = _samp_fetches['zos']
   fetches =  {}
   fetches['step'] = tf.train.get_or_create_global_step()
   grid_prev = graph.get_tensor_by_name('G_z_grid_prev:0')
