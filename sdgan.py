@@ -223,8 +223,8 @@ def train(
     D_loss /= 2.
   elif loss == 'lsgan':
     G_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
-    D_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
-    D_loss += tf.reduce_mean(D_x ** 2)
+    D_loss = tf.reduce_mean((D_x - 1.) ** 2)
+    D_loss += tf.reduce_mean(D_G_z ** 2)
     D_loss /= 2.
   elif loss == 'wgan':
     G_loss = -tf.reduce_mean(D_G_z)
