@@ -39,10 +39,12 @@ window.sdgan = window.sdgan || {};
         var varLoader = new deeplearn.CheckpointLoader(cfg.net.ckpt_dir);
         varLoader.getAllVariables().then(function (vars) {
             net.vars = vars;
+            /*
             sdgan.net.fig1_grid_zis = vars['fig1/grid_zis'];
             sdgan.net.fig1_grid_zos = vars['fig1/grid_zos'];
             sdgan.net.fig1_grid_Gzs = vars['fig1/grid_Gzs'];
             sdgan.net.fig1_lerp_Gzs = vars['fig1/lerp_Gzs'];
+            */
             net.ready = true;
 
             cfg.debugMsg('Variables loaded');
@@ -115,58 +117,43 @@ window.sdgan = window.sdgan || {};
                 return x;
             };
 
+            function batchnorm(x, name) {
+                var mean = net.vars[name + '/batch_normalization/moving_mean'];
+                var variance = net.vars[name + '/batch_normalization/moving_variance'];
+                var scale = net.vars[name + '/batch_normalization/gamma'];
+                var offset = net.vars[name + '/batch_normalization/beta'];
+
+                return m.batchNormalization3D(x, mean, variance, 0.001, scale, offset);
+            };
+
             // Concat identity and observation vector [100]
             var x = m.concat1D(_zi, _zo);
 
-            // Project to [8, 8, 128]
-            x = m.vectorTimesMatrix(x, net.vars['G/fully_connected/weights']);
-            x = m.add(x, net.vars['G/fully_connected/biases']);
-            x = x.reshape([128, 8, 8]);
-            x = m.switchDim(x, [1, 2, 0]);
+            // Project to [4, 4, 1024]
+            x = m.vectorTimesMatrix(x, net.vars['G/z_project/dense/kernel']);
+            x = m.add(x, net.vars['G/z_project/dense/bias']);
+            x = x.reshape([4, 4, 1024]);
+            x = batchnorm(x, 'G/z_project');
+            x = m.relu(x);
 
-            // Conv 0
-            x = m.conv2d(x, net.vars['G/Conv/weights'], net.vars['G/Conv/biases'], [1, 1], 'same');
-            x = elu(x);
+            // Conv 0 to [8, 8, 512]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_0/conv2d_transpose/kernel'], [8, 8, 512], [2, 2], 'same');
+            x = batchnorm(x, 'G/upconv_2d_0');
+            x = m.relu(x);
 
-            // Conv 1
-            x = m.conv2d(x, net.vars['G/Conv_1/weights'], net.vars['G/Conv_1/biases'], [1, 1], 'same');
-            x = elu(x);
+            // Conv 1 to [16, 16, 256]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_1/conv2d_transpose/kernel'], [16, 16, 256], [2, 2], 'same');
+            x = batchnorm(x, 'G/upconv_2d_1');
+            x = m.relu(x);
 
-            // Upscale to [16, 16, 128]
-            x = nn_upscale(x, 2);
+            // Conv 2 to [32, 32, 128]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_2/conv2d_transpose/kernel'], [32, 32, 128], [2, 2], 'same');
+            x = batchnorm(x, 'G/upconv_2d_2');
+            x = m.relu(x);
 
-            // Conv 2
-            x = m.conv2d(x, net.vars['G/Conv_2/weights'], net.vars['G/Conv_2/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 3
-            x = m.conv2d(x, net.vars['G/Conv_3/weights'], net.vars['G/Conv_3/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Upscale to [32, 32, 128]
-            x = nn_upscale(x, 2);
-
-            // Conv 4
-            x = m.conv2d(x, net.vars['G/Conv_4/weights'], net.vars['G/Conv_4/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 5
-            x = m.conv2d(x, net.vars['G/Conv_5/weights'], net.vars['G/Conv_5/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Upscale to [64, 64, 128]
-            x = nn_upscale(x, 2);
-
-            // Conv 6
-            x = m.conv2d(x, net.vars['G/Conv_6/weights'], net.vars['G/Conv_6/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 7
-            x = m.conv2d(x, net.vars['G/Conv_7/weights'], net.vars['G/Conv_7/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 8 to [64, 64, 3]
-            x = m.conv2d(x, net.vars['G/Conv_8/weights'], net.vars['G/Conv_8/biases'], [1, 1], 'same');
+            // Conv 3 to [64, 64, 3]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_3/conv2d_transpose/kernel'], [64, 64, 3], [2, 2], 'same');
+            x = m.tanh(x);
 
             // Denorm image and clip
             x = m.add(x, deeplearn.Scalar.new(1.));
