@@ -403,12 +403,23 @@ window.sdgan = window.sdgan || {};
 
         pauseUserInput();
 
-        // Render "Loading..."
-        for (var i = 0; i < cfg.ui.nids; ++i) {
-            for (var o = 0; o < cfg.ui.nobs; ++o) {
-                drawCell(getGridCtx(i, o), 'Loading...');
-                drawCell(getLerpCtx(i, o), 'Loading...');
+        if (cfg.ui.fig1_z) {
+            // Render "Loading..."
+            for (var i = 0; i < cfg.ui.nids; ++i) {
+                for (var o = 0; o < cfg.ui.nobs; ++o) {
+                    drawCell(getGridCtx(i, o), 'Loading...');
+                    drawCell(getLerpCtx(i, o), 'Loading...');
+                }
             }
+        }
+        else {
+            // Render "Thinking..."
+            for (var i = 0; i < cfg.ui.nids; ++i) {
+                for (var o = 0; o < cfg.ui.nobs; ++o) {
+                    drawCell(getGridCtx(i, o), 'Thinking...');
+                }
+            }
+            lerpClear('', '', '', '', '');
         }
 
         // (Gross) wait for net to be ready
@@ -466,6 +477,7 @@ window.sdgan = window.sdgan || {};
                 }
                 else {
                     generateAll();
+                    lerpClear('', 'Select A', '', 'Select B', '');
                 }
 
                 resumeUserInput();
