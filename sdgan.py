@@ -90,27 +90,7 @@ def group_choose_k(
 """
   Trains an SD-GAN
 """
-def train(
-    train_dir,
-    named_id_to_fps,
-    batch_size,
-    k,
-    height,
-    width,
-    nch,
-    queue_capacity=8192,
-    queue_min=4096,
-    queue_nthreads=2,
-    d_i=50,
-    d_o=50,
-    G_dim=64,
-    D_dim=64,
-    loss='dcgan',
-    opt='dcgan',
-    D_siamese=True,
-    D_iters=1,
-    save_secs=300,
-    summary_secs=120):
+def train(named_id_to_fps, args):
   # Get batch of observations
   def make_batch(observations):
     queue = tf.RandomShuffleQueue(
@@ -320,10 +300,7 @@ def train(
 """
   Visualizes a fixed set of random latent vectors during training
 """
-def preview(
-    train_dir,
-    nids,
-    nobs):
+def preview(args):
   from scipy.misc import imsave
 
   preview_dir = os.path.join(train_dir, 'preview')
@@ -421,17 +398,8 @@ def preview(
       * (Output) G_z_grid_uint8/0: uint8 encoding of G_z_grid/0
       * (Output) G_z_grid_prev: Image preview version of grid (5 axes to 3)
 """
-def infer(
-    train_dir,
-    height,
-    width,
-    nch,
-    d_i,
-    d_o,
-    G_dim,
-    named_id_to_fps=None,
-    id_name_tsv_fp=None):
-  infer_dir = os.path.join(train_dir, 'infer')
+def infer(named_id_to_fps, args):
+  infer_dir = os.path.join(args.train_dir, 'infer')
   if not os.path.isdir(infer_dir):
     os.makedirs(infer_dir)
 
@@ -541,41 +509,63 @@ if __name__ == '__main__':
   parser.add_argument('mode', type=str, choices=['train', 'preview', 'infer'])
   parser.add_argument('train_dir', type=str,
       help='Training directory')
-  parser.add_argument('--data_dir', type=str,
+
+  data_args = parser.add_argument_group('Data')
+  data_args.add_argument('--data_dir', type=str,
       help='Data directory')
-  parser.add_argument('--data_set', type=str, choices=['msceleb12k', 'shoes4k'],
+  data_args.add_argument('--data_set', type=str, choices=['msceleb12k', 'shoes4k'],
       help='Which dataset')
-  parser.add_argument('--data_id_name_tsv_fp', type=str,
+  data_args.add_argument('--data_id_name_tsv_fp', type=str,
       help='(Optional) alternate names for ids')
-  parser.add_argument('--data_nids', type=int,
+  data_args.add_argument('--data_nids', type=int,
       help='If positive, limits number of identites')
-  parser.add_argument('--model_d_i', type=int,
+
+  model_args = parser.add_argument_group('Model')
+  model_args.add_argument('--model_d_i', type=int,
       help='Dimensionality of identity codes')
-  parser.add_argument('--model_d_o', type=int,
+  model_args.add_argument('--model_d_o', type=int,
       help='Dimensionality of observation codes')
-  parser.add_argument('--model_dim', type=int,
+
+  dcgan_args = parser.add_argument_group('DCGAN')
+  dcgan_args.add_argument('--dcgan', action='store_true', dest='dcgan',
+      help='Train an SDDCGAN')
+  dcgan_args.add_argument('--dcgan_dim', type=int,
       help='Dimensionality multiplier for model of G and D')
-  parser.add_argument('--train_batch_size', type=int,
-      help='Batch size')
-  parser.add_argument('--train_k', type=int,
-      help='k-wise SD-GAN training')
-  parser.add_argument('--train_queue_capacity', type=int,
-      help='Random example queue capacity (number of image tuples)')
-  parser.add_argument('--train_queue_min', type=int,
-      help='Random example queue minimum')
-  parser.add_argument('--train_disc_siamese', type=str2bool,
+  dcgan_args.add_argument('--dcgan_disc_siamese', type=str2bool,
       help='If false, stack channels rather than Siamese encoding')
-  parser.add_argument('--train_disc_nupdates', type=int,
+  dcgan_args.add_argument('--dcgan_disc_nupdates', type=int,
       help='Number of discriminator updates per generator update')
-  parser.add_argument('--train_loss', type=str, choices=['dcgan', 'lsgan', 'wgan', 'wgan-gp'],
+  dcgan_args.add_argument('--dcgan_loss', type=str, choices=['dcgan', 'lsgan', 'wgan', 'wgan-gp'],
       help='Which GAN loss to use')
-  parser.add_argument('--train_save_secs', type=int,
+
+  began_args = parser.add_argument_group('BEGAN')
+  began_args.add_argument('--began', action='store_false', dest='dcgan',
+      help='Train an SDBEGAN')
+  began_args.add_argument('--began_nhidden', type=int,
+      help='Number of hidden states for layers of G and D')
+  began_args.add_argument('--began_gamma', type=float,
+      help='Gamma argument for training stabilization')
+  began_args.add_argument('--began_lambda_k', type=float,
+      help='Learning rate for training stabilization')
+
+  train_args = parser.add_argument_group('Train')
+  train_args.add_argument('--train_batch_size', type=int,
+      help='Batch size')
+  train_args.add_argument('--train_k', type=int,
+      help='k-wise SD-GAN training')
+  train_args.add_argument('--train_queue_capacity', type=int,
+      help='Random example queue capacity (number of image tuples)')
+  train_args.add_argument('--train_queue_min', type=int,
+      help='Random example queue minimum')
+  train_args.add_argument('--train_save_secs', type=int,
       help='How often to save model')
-  parser.add_argument('--train_summary_secs', type=int,
+  train_args.add_argument('--train_summary_secs', type=int,
       help='How often to report summaries')
-  parser.add_argument('--preview_nids', type=int,
+
+  preview_args = parser.add_argument_group('Preview')
+  preview_args.add_argument('--preview_nids', type=int,
       help='Number of distinct identity vectors to preview')
-  parser.add_argument('--preview_nobs', type=int,
+  preview_args.add_argument('--preview_nobs', type=int,
       help='Number of distinct observation vectors to preview')
 
   parser.set_defaults(
@@ -585,14 +575,18 @@ if __name__ == '__main__':
     data_nids=-1,
     model_d_i=50,
     model_d_o=50,
-    model_dim=64,
+    dcgan=True,
+    dcgan_dim=64,
+    dcgan_disc_siamese=True,
+    dcgan_disc_nupdates=1,
+    dcgan_loss='dcgan',
+    began_nhidden=128,
+    began_gamma=0.5,
+    began_lambda_k=0.001,
     train_batch_size=16,
     train_k=2,
     train_queue_capacity=8192,
     train_queue_min=4096,
-    train_disc_siamese=True,
-    train_disc_nupdates=1,
-    train_loss='dcgan',
     train_save_secs=300,
     train_summary_secs=120,
     preview_nids=6,
@@ -618,17 +612,18 @@ if __name__ == '__main__':
   if args.data_set == 'msceleb12k':
     data_extension = 'png'
     fname_to_named_id = lambda fn: fn.rsplit('_', 2)[0]
-    height = 64
-    width = 64
-    nch = 3
+    setattr(args, 'height', 64)
+    setattr(args, 'width', 64)
+    setattr(args, 'nch', 3)
   elif args.data_set == 'shoes4k':
     data_extension = 'png'
     fname_to_named_id = lambda fn: fn.rsplit('_', 2)[0]
-    height = 64
-    width = 64
-    nch = 3
+    setattr(args, 'height', 64)
+    setattr(args, 'width', 64)
+    setattr(args, 'nch', 3)
   else:
     raise NotImplementedError()
+  
 
   # Find group fps and make splits
   if split is not None:
@@ -654,55 +649,11 @@ if __name__ == '__main__':
           np.mean([len(o) for o in named_id_to_fps.values()]))
 
   if args.mode == 'train':
-    # Save inference graph first
-    infer(
-        args.train_dir,
-        height,
-        width,
-        nch,
-        args.model_d_i,
-        args.model_d_o,
-        args.model_dim,
-        named_id_to_fps=named_id_to_fps,
-        id_name_tsv_fp=args.data_id_name_tsv_fp)
-
-    # Train
-    train(
-        args.train_dir,
-        named_id_to_fps,
-        args.train_batch_size,
-        args.train_k,
-        height,
-        width,
-        nch,
-        queue_capacity=args.train_queue_capacity,
-        queue_min=args.train_queue_min,
-        queue_nthreads=4,
-        d_i=args.model_d_i,
-        d_o=args.model_d_o,
-        G_dim=args.model_dim,
-        D_dim=args.model_dim,
-        loss=args.train_loss,
-        opt=args.train_loss,
-        D_siamese=args.train_disc_siamese,
-        D_iters=args.train_disc_nupdates,
-        save_secs=args.train_save_secs,
-        summary_secs=args.train_summary_secs)
+    infer(named_id_to_fps, args)
+    train(named_id_to_fps, args)
   elif args.mode == 'preview':
-    preview(
-      args.train_dir,
-      args.preview_nids,
-      args.preview_nobs)
+    preview(args)
   elif args.mode == 'infer':
-    infer(
-        args.train_dir,
-        height,
-        width,
-        nch,
-        args.model_d_i,
-        args.model_d_o,
-        args.model_dim,
-        named_id_to_fps=named_id_to_fps,
-        id_name_tsv_fp=args.data_id_name_tsv_fp)
+    infer(named_id_to_fps, args)
   else:
     raise NotImplementedError()
