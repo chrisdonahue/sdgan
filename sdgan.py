@@ -94,54 +94,55 @@ def train(named_id_to_fps, args):
   # Get batch of observations
   def make_batch(observations):
     queue = tf.RandomShuffleQueue(
-        capacity=queue_capacity,
-        min_after_dequeue=queue_min,
-        shapes=[[k, height, width, nch]],
+        capacity=args.train_queue_capacity,
+        min_after_dequeue=args.train_queue_min,
+        shapes=[[args.train_k, args.height, args.width, args.nch]],
         dtypes=[tf.float32])
 
     example = tf.stack(observations, axis=0)
     enqueue_op = queue.enqueue(example)
+    queue_nthreads = 4
     qr = tf.train.QueueRunner(queue, [enqueue_op] * queue_nthreads)
     tf.train.add_queue_runner(qr)
 
     tf.summary.scalar('queue_size', queue.size())
 
-    return queue.dequeue_many(batch_size)
+    return queue.dequeue_many(args.train_batch_size)
 
   # Load observation tuples
   with tf.name_scope('loader'):
     # Generate matched pairs of WAV fps
     with tf.device('/cpu:0'):
-      tup = group_choose_k(named_id_to_fps, k, with_replacement=False)
+      tup = group_choose_k(named_id_to_fps, args.train_k, with_replacement=False)
 
       observations = []
-      for i in xrange(k):
+      for i in xrange(args.train_k):
         observation = decode_png_observation(tup[i])
-        observation.set_shape([height, width, nch])
+        observation.set_shape([args.height, args.width, args.nch])
         observations.append(observation)
 
       x = make_batch(observations)
 
   # Make image summaries
-  for i in xrange(k):
+  for i in xrange(args.train_k):
     tf.summary.image('x_{}'.format(i), encode_png_observation(x[:, i]))
 
   # Make identity vector and repeat k times
-  zi = tf.random_uniform([batch_size, d_i], -1.0, 1.0, dtype=tf.float32)
-  zi = tf.tile(zi, [1, k])
-  zi = tf.reshape(zi, [batch_size, k, d_i])
+  zi = tf.random_uniform([args.train_batch_size, args.model_d_i], -1.0, 1.0, dtype=tf.float32)
+  zi = tf.tile(zi, [1, args.train_k])
+  zi = tf.reshape(zi, [args.train_batch_size, args.train_k, args.model_d_i])
 
   # Draw iid observation vectors (no repetition)
-  zo = tf.random_uniform([batch_size, k, d_o], -1.0, 1.0, dtype=tf.float32)
+  zo = tf.random_uniform([args.train_batch_size, args.train_k, args.model_d_o], -1.0, 1.0, dtype=tf.float32)
 
   # Concat [zi; zo]
   z = tf.concat([zi, zo], axis=2)
 
   # Make generator
   with tf.variable_scope('G'):
-    z = tf.reshape(z, [batch_size * k, d_i + d_o])
-    G_z = DCGANGenerator64x64(z, nch, dim=G_dim, train=True)
-    G_z = tf.reshape(G_z, [batch_size, k, height, width, nch])
+    z = tf.reshape(z, [args.train_batch_size * args.train_k, args.model_d_i + args.model_d_o])
+    G_z = DCGANGenerator64x64(z, args.nch, dim=args.dcgan_dim, train=True)
+    G_z = tf.reshape(G_z, [args.train_batch_size, args.train_k, args.height, args.width, args.nch])
   G_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='G')
 
   # Print G summary
@@ -156,12 +157,12 @@ def train(named_id_to_fps, args):
   print 'Total params: {} ({:.2f} MB)'.format(nparams, (float(nparams) * 4) / (1024 * 1024))
 
   # Make image summaries
-  for i in xrange(k):
+  for i in xrange(args.train_k):
     tf.summary.image('G_z_{}'.format(i), encode_png_observation(G_z[:, i]))
 
   # Make real discriminator
   with tf.name_scope('D_x'), tf.variable_scope('D'):
-    D_x = SDDCGANDiscriminator64x64(x, dim=D_dim, siamese=D_siamese)
+    D_x = SDDCGANDiscriminator64x64(x, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
   D_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='D')
 
   # Print D summary
@@ -178,13 +179,13 @@ def train(named_id_to_fps, args):
 
   # Make fake discriminator
   with tf.name_scope('D_G_z'), tf.variable_scope('D', reuse=True):
-    D_G_z = SDDCGANDiscriminator64x64(G_z, dim=D_dim, siamese=D_siamese)
+    D_G_z = SDDCGANDiscriminator64x64(G_z, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
 
   # Create loss
   D_clip_weights = None
-  if loss == 'dcgan':
-    fake = tf.zeros([batch_size], dtype=tf.float32)
-    real = tf.ones([batch_size], dtype=tf.float32)
+  if args.dcgan_loss == 'dcgan':
+    fake = tf.zeros([args.train_batch_size], dtype=tf.float32)
+    real = tf.ones([args.train_batch_size], dtype=tf.float32)
 
     G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
       logits=D_G_z,
@@ -201,12 +202,12 @@ def train(named_id_to_fps, args):
     ))
 
     D_loss /= 2.
-  elif loss == 'lsgan':
+  elif args.dcgan_loss == 'lsgan':
     G_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
     D_loss = tf.reduce_mean((D_x - 1.) ** 2)
     D_loss += tf.reduce_mean(D_G_z ** 2)
     D_loss /= 2.
-  elif loss == 'wgan':
+  elif args.dcgan_loss == 'wgan':
     G_loss = -tf.reduce_mean(D_G_z)
     D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
 
@@ -221,15 +222,15 @@ def train(named_id_to_fps, args):
           )
         )
       D_clip_weights = tf.group(*clip_ops)
-  elif loss == 'wgan-gp':
+  elif args.dcgan_loss == 'wgan-gp':
     G_loss = -tf.reduce_mean(D_G_z)
     D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
 
-    alpha = tf.random_uniform(shape=[batch_size, 1, 1, 1, 1], minval=0., maxval=1.)
+    alpha = tf.random_uniform(shape=[args.train_batch_size, 1, 1, 1, 1], minval=0., maxval=1.)
     differences = G_z - x
     interpolates = x + (alpha * differences)
     with tf.name_scope('D_interp'), tf.variable_scope('D', reuse=True):
-      D_interp = SDDCGANDiscriminator64x64(interpolates, dim=D_dim, siamese=D_siamese)
+      D_interp = SDDCGANDiscriminator64x64(interpolates, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
 
     LAMBDA = 10
     gradients = tf.gradients(D_interp, [interpolates])[0]
@@ -243,7 +244,7 @@ def train(named_id_to_fps, args):
   tf.summary.scalar('D_loss', D_loss)
 
   # Create optimizer
-  if opt == 'dcgan':
+  if args.dcgan_loss == 'dcgan':
     G_opt = tf.train.AdamOptimizer(
         learning_rate=2e-4,
         beta1=0.5)
@@ -251,19 +252,19 @@ def train(named_id_to_fps, args):
     D_opt = tf.train.AdamOptimizer(
         learning_rate=2e-4,
         beta1=0.5)
-  elif opt == 'lsgan':
+  elif args.dcgan_loss == 'lsgan':
     G_opt = tf.train.RMSPropOptimizer(
         learning_rate=1e-4)
 
     D_opt = tf.train.RMSPropOptimizer(
         learning_rate=1e-4)
-  elif opt == 'wgan':
+  elif args.dcgan_loss == 'wgan':
     G_opt = tf.train.RMSPropOptimizer(
         learning_rate=5e-5)
 
     D_opt = tf.train.RMSPropOptimizer(
         learning_rate=5e-5)
-  elif opt == 'wgan-gp':
+  elif args.dcgan_loss == 'wgan-gp':
     G_opt = tf.train.AdamOptimizer(
         learning_rate=1e-4,
         beta1=0.5,
@@ -282,12 +283,12 @@ def train(named_id_to_fps, args):
 
   # Run training
   with tf.train.MonitoredTrainingSession(
-      checkpoint_dir=train_dir,
-      save_checkpoint_secs=save_secs,
-      save_summaries_secs=summary_secs) as sess:
+      checkpoint_dir=args.train_dir,
+      save_checkpoint_secs=args.train_save_secs,
+      save_summaries_secs=args.train_summary_secs) as sess:
     while True:
       # Train discriminator
-      for i in xrange(D_iters):
+      for i in xrange(args.dcgan_disc_nupdates):
         sess.run(D_train_op)
 
         if D_clip_weights is not None:
@@ -303,12 +304,12 @@ def train(named_id_to_fps, args):
 def preview(args):
   from scipy.misc import imsave
 
-  preview_dir = os.path.join(train_dir, 'preview')
+  preview_dir = os.path.join(args.train_dir, 'preview')
   if not os.path.isdir(preview_dir):
     os.makedirs(preview_dir)
 
   # Load graph
-  infer_metagraph_fp = os.path.join(train_dir, 'infer', 'infer.meta')
+  infer_metagraph_fp = os.path.join(args.train_dir, 'infer', 'infer.meta')
   graph = tf.get_default_graph()
   saver = tf.train.import_meta_graph(infer_metagraph_fp)
 
@@ -321,8 +322,8 @@ def preview(args):
   else:
     # Sample z_i and z_o
     samp_feeds = {}
-    samp_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = nids
-    samp_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = nobs
+    samp_feeds[graph.get_tensor_by_name('samp_zi_n:0')] = args.preview_nids
+    samp_feeds[graph.get_tensor_by_name('samp_zo_n:0')] = args.preview_nobs
     samp_fetches = {}
     samp_fetches['zis'] = graph.get_tensor_by_name('samp_zi:0')
     samp_fetches['zos'] = graph.get_tensor_by_name('samp_zo:0')
@@ -349,7 +350,7 @@ def preview(args):
   # Loop, waiting for checkpoints
   ckpt_fp = None
   while True:
-    latest_ckpt_fp = tf.train.latest_checkpoint(train_dir)
+    latest_ckpt_fp = tf.train.latest_checkpoint(args.train_dir)
     if latest_ckpt_fp != ckpt_fp:
       print 'Preview: {}'.format(latest_ckpt_fp)
 
@@ -424,23 +425,23 @@ def infer(named_id_to_fps, args):
     fps = tf.constant(fps, dtype=tf.string, name='meta_all_fps')
 
     # Alternative names (such as real names with spaces; not convenient for file paths)
-    if id_name_tsv_fp is not None:
-      with open(id_name_tsv_fp, 'r') as f:
+    if args.data_id_name_tsv_fp is not None:
+      with open(args.data_id_name_tsv_fp, 'r') as f:
         names = [l.split('\t')[1].strip() for l in f.readlines()[1:]]
       named_ids = tf.constant(names, dtype=tf.string, name='meta_all_names')
 
     samp_named_id = tf.gather(named_ids, samp_id, name='samp_named_ids')
     samp_fp_group = tf.gather(fps, samp_id, name='samp_group_fps')
-    if id_name_tsv_fp is not None:
+    if args.data_id_name_tsv_fp is not None:
       samp_name = tf.gather(names, samp_id, name='samp_names')
 
   # Sample zi/zo
-  samp_zi = tf.random_uniform([samp_zi_n, d_i], -1.0, 1.0, dtype=tf.float32, name='samp_zi')
-  samp_zo = tf.random_uniform([samp_zo_n, d_o], -1.0, 1.0, dtype=tf.float32, name='samp_zo')
+  samp_zi = tf.random_uniform([samp_zi_n, args.model_d_i], -1.0, 1.0, dtype=tf.float32, name='samp_zi')
+  samp_zo = tf.random_uniform([samp_zo_n, args.model_d_o], -1.0, 1.0, dtype=tf.float32, name='samp_zo')
 
   # Input zo
-  zi = tf.placeholder(tf.float32, [None, d_i], name='zi')
-  zo = tf.placeholder(tf.float32, [None, d_o], name='zo')
+  zi = tf.placeholder(tf.float32, [None, args.model_d_i], name='zi')
+  zo = tf.placeholder(tf.float32, [None, args.model_d_o], name='zo')
 
   # Latent representation
   z = tf.concat([zi, zo], axis=1, name='z')
@@ -456,14 +457,14 @@ def infer(named_id_to_fps, args):
 
   # Execute generator
   with tf.variable_scope('G'):
-    G_z = DCGANGenerator64x64(z, nch, dim=G_dim)
+    G_z = DCGANGenerator64x64(z, args.nch, dim=args.dcgan_dim)
   G_z = tf.identity(G_z, name='G_z')
 
   # Execute generator on grid
-  z_grid = tf.reshape(z_grid, [zi_n * zo_n, d_i + d_o])
+  z_grid = tf.reshape(z_grid, [zi_n * zo_n, args.model_d_i + args.model_d_o])
   with tf.variable_scope('G', reuse=True):
-    G_z_grid = DCGANGenerator64x64(z_grid, nch, dim=G_dim)
-  G_z_grid = tf.reshape(G_z_grid, [zi_n, zo_n, height, width, nch], name='G_z_grid')
+    G_z_grid = DCGANGenerator64x64(z_grid, args.nch, dim=args.dcgan_dim)
+  G_z_grid = tf.reshape(G_z_grid, [zi_n, zo_n, args.height, args.width, args.nch], name='G_z_grid')
 
   # Encode to uint8
   G_z_uint8 = encode_png_observation(G_z, name='G_z_uint8')
@@ -472,9 +473,9 @@ def infer(named_id_to_fps, args):
   # Flatten grid of images to one large image (row shares zi, column shares zo)
   grid_zo_n = tf.shape(G_z_grid_uint8)[1]
   G_z_grid_prev = tf.transpose(G_z_grid_uint8, [1, 0, 2, 3, 4])
-  G_z_grid_prev = tf.reshape(G_z_grid_prev, [grid_zo_n, zi_n * height, width, nch])
+  G_z_grid_prev = tf.reshape(G_z_grid_prev, [grid_zo_n, zi_n * args.height, args.width, args.nch])
   G_z_grid_prev = tf.transpose(G_z_grid_prev, [1, 0, 2, 3])
-  G_z_grid_prev = tf.reshape(G_z_grid_prev, [zi_n * height, grid_zo_n * width, nch], name='G_z_grid_prev')
+  G_z_grid_prev = tf.reshape(G_z_grid_prev, [zi_n * args.height, grid_zo_n * args.width, args.nch], name='G_z_grid_prev')
 
   # Create saver
   G_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='G')
