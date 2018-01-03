@@ -66,7 +66,7 @@ def SDBEGANDiscriminator64x64(x, hidden_num=128):
 
   # Merge Siamese encodings to bottleneck
   zs = tf.concat(zs, axis=1)
-  z = slim.fully_connected(z, k * d_i + d_o, activation_fn=None)
+  z = slim.fully_connected(zs, k * d_i + d_o, activation_fn=None)
 
   # Split bottleneck
   z = slim.fully_connected(z, k * (d_i + d_o), activation_fn=None)
