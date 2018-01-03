@@ -192,100 +192,118 @@ def train(named_id_to_fps, args):
       D_G_z = SDBEGANDiscriminator64x64(G_z, hidden_num=args.began_nhidden)
 
   # Create loss
-  D_clip_weights = None
-  if args.dcgan_loss == 'dcgan':
-    fake = tf.zeros([args.train_batch_size], dtype=tf.float32)
-    real = tf.ones([args.train_batch_size], dtype=tf.float32)
+  if args.dcgan:
+    D_clip_weights = None
+    if args.dcgan_loss == 'dcgan':
+      fake = tf.zeros([args.train_batch_size], dtype=tf.float32)
+      real = tf.ones([args.train_batch_size], dtype=tf.float32)
 
-    G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-      logits=D_G_z,
-      labels=real
-    ))
+      G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=D_G_z,
+        labels=real
+      ))
 
-    D_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-      logits=D_G_z,
-      labels=fake
-    ))
-    D_loss += tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-      logits=D_x,
-      labels=real
-    ))
+      D_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=D_G_z,
+        labels=fake
+      ))
+      D_loss += tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=D_x,
+        labels=real
+      ))
 
-    D_loss /= 2.
-  elif args.dcgan_loss == 'lsgan':
-    G_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
-    D_loss = tf.reduce_mean((D_x - 1.) ** 2)
-    D_loss += tf.reduce_mean(D_G_z ** 2)
-    D_loss /= 2.
-  elif args.dcgan_loss == 'wgan':
-    G_loss = -tf.reduce_mean(D_G_z)
-    D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
+      D_loss /= 2.
+    elif args.dcgan_loss == 'lsgan':
+      G_loss = tf.reduce_mean((D_G_z - 1.) ** 2)
+      D_loss = tf.reduce_mean((D_x - 1.) ** 2)
+      D_loss += tf.reduce_mean(D_G_z ** 2)
+      D_loss /= 2.
+    elif args.dcgan_loss == 'wgan':
+      G_loss = -tf.reduce_mean(D_G_z)
+      D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
 
-    with tf.name_scope('D_clip_weights'):
-      clip_ops = []
-      for var in D_vars:
-        clip_bounds = [-.01, .01]
-        clip_ops.append(
-          tf.assign(
-            var,
-            tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
+      with tf.name_scope('D_clip_weights'):
+        clip_ops = []
+        for var in D_vars:
+          clip_bounds = [-.01, .01]
+          clip_ops.append(
+            tf.assign(
+              var,
+              tf.clip_by_value(var, clip_bounds[0], clip_bounds[1])
+            )
           )
-        )
-      D_clip_weights = tf.group(*clip_ops)
-  elif args.dcgan_loss == 'wgan-gp':
-    G_loss = -tf.reduce_mean(D_G_z)
-    D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
+        D_clip_weights = tf.group(*clip_ops)
+    elif args.dcgan_loss == 'wgan-gp':
+      G_loss = -tf.reduce_mean(D_G_z)
+      D_loss = tf.reduce_mean(D_G_z) - tf.reduce_mean(D_x)
 
-    alpha = tf.random_uniform(shape=[args.train_batch_size, 1, 1, 1, 1], minval=0., maxval=1.)
-    differences = G_z - x
-    interpolates = x + (alpha * differences)
-    with tf.name_scope('D_interp'), tf.variable_scope('D', reuse=True):
-      D_interp = SDDCGANDiscriminator64x64(interpolates, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
+      alpha = tf.random_uniform(shape=[args.train_batch_size, 1, 1, 1, 1], minval=0., maxval=1.)
+      differences = G_z - x
+      interpolates = x + (alpha * differences)
+      with tf.name_scope('D_interp'), tf.variable_scope('D', reuse=True):
+        D_interp = SDDCGANDiscriminator64x64(interpolates, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
 
-    LAMBDA = 10
-    gradients = tf.gradients(D_interp, [interpolates])[0]
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1, 2]))
-    gradient_penalty = tf.reduce_mean((slopes - 1.) ** 2.)
-    D_loss += LAMBDA * gradient_penalty
+      LAMBDA = 10
+      gradients = tf.gradients(D_interp, [interpolates])[0]
+      slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1, 2]))
+      gradient_penalty = tf.reduce_mean((slopes - 1.) ** 2.)
+      D_loss += LAMBDA * gradient_penalty
+    else:
+      raise NotImplementedError()
+
+    tf.summary.scalar('G_loss', G_loss)
+    tf.summary.scalar('D_loss', D_loss)
+
+    # Create optimizer
+    if args.dcgan_loss == 'dcgan':
+      G_opt = tf.train.AdamOptimizer(
+          learning_rate=2e-4,
+          beta1=0.5)
+
+      D_opt = tf.train.AdamOptimizer(
+          learning_rate=2e-4,
+          beta1=0.5)
+    elif args.dcgan_loss == 'lsgan':
+      G_opt = tf.train.RMSPropOptimizer(
+          learning_rate=1e-4)
+
+      D_opt = tf.train.RMSPropOptimizer(
+          learning_rate=1e-4)
+    elif args.dcgan_loss == 'wgan':
+      G_opt = tf.train.RMSPropOptimizer(
+          learning_rate=5e-5)
+
+      D_opt = tf.train.RMSPropOptimizer(
+          learning_rate=5e-5)
+    elif args.dcgan_loss == 'wgan-gp':
+      G_opt = tf.train.AdamOptimizer(
+          learning_rate=1e-4,
+          beta1=0.5,
+          beta2=0.9)
+
+      D_opt = tf.train.AdamOptimizer(
+          learning_rate=1e-4,
+          beta1=0.5,
+          beta2=0.9)
+    else:
+      raise NotImplementedError()
   else:
-    raise NotImplementedError()
+    # Create loss
+    D_loss_x = tf.reduce_mean(tf.abs(D_x - x))
+    D_loss_G_z = tf.reduce_mean(tf.abs(D_G_z - G_z))
+    k_t = tf.Variable(0., trainable=False, name='k_t')
+    D_loss = D_loss_x - k_t * D_loss_G_z
+    G_loss = tf.reduce_mean(D_loss_G_z)
 
-  tf.summary.scalar('G_loss', G_loss)
-  tf.summary.scalar('D_loss', D_loss)
+    # Update training stabilizer
+    k_update_op = tf.assign_add(k_t, args.began_lambda_k * (args.began_gamma * D_loss_x - D_loss_G_z))
 
-  # Create optimizer
-  if args.dcgan_loss == 'dcgan':
-    G_opt = tf.train.AdamOptimizer(
-        learning_rate=2e-4,
-        beta1=0.5)
+    # Measure convergence
+    convergence = D_loss_x + tf.abs(args.began_gamma * D_loss_x - D_loss_G_z)
 
-    D_opt = tf.train.AdamOptimizer(
-        learning_rate=2e-4,
-        beta1=0.5)
-  elif args.dcgan_loss == 'lsgan':
-    G_opt = tf.train.RMSPropOptimizer(
-        learning_rate=1e-4)
-
-    D_opt = tf.train.RMSPropOptimizer(
-        learning_rate=1e-4)
-  elif args.dcgan_loss == 'wgan':
-    G_opt = tf.train.RMSPropOptimizer(
-        learning_rate=5e-5)
-
-    D_opt = tf.train.RMSPropOptimizer(
-        learning_rate=5e-5)
-  elif args.dcgan_loss == 'wgan-gp':
-    G_opt = tf.train.AdamOptimizer(
-        learning_rate=1e-4,
-        beta1=0.5,
-        beta2=0.9)
-
-    D_opt = tf.train.AdamOptimizer(
-        learning_rate=1e-4,
-        beta1=0.5,
-        beta2=0.9)
-  else:
-    raise NotImplementedError()
+    # Create optimizers
+    G_opt = tf.train.AdamOptimizer(learning_rate=1e-4)
+    D_opt = tf.train.AdamOptimizer(learning_rate=1e-4)
 
   G_train_op = G_opt.minimize(G_loss, var_list=G_vars,
       global_step=tf.train.get_or_create_global_step())
@@ -297,15 +315,18 @@ def train(named_id_to_fps, args):
       save_checkpoint_secs=args.train_save_secs,
       save_summaries_secs=args.train_summary_secs) as sess:
     while True:
-      # Train discriminator
-      for i in xrange(args.dcgan_disc_nupdates):
-        sess.run(D_train_op)
+      if args.dcgan:
+        # Train discriminator
+        for i in xrange(args.dcgan_disc_nupdates):
+          sess.run(D_train_op)
 
-        if D_clip_weights is not None:
-          sess.run(D_clip_weights)
+          if D_clip_weights is not None:
+            sess.run(D_clip_weights)
 
-      # Train generator
-      sess.run(G_train_op)
+        # Train generator
+        sess.run(G_train_op)
+      else:
+        sess.run([G_train_op, D_train_op, k_update_op])
 
 
 """
