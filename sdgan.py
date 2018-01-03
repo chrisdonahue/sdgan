@@ -312,8 +312,8 @@ def train(named_id_to_fps, args):
     # Summarize
     tf.summary.scalar('G_loss', G_loss)
     tf.summary.scalar('D_loss', D_loss)
-    tf.summary.scalar('convergence')
-    tf.summary.scalar('k_t')
+    tf.summary.scalar('convergence', convergence)
+    tf.summary.scalar('k_t', k_t)
 
   G_train_op = G_opt.minimize(G_loss, var_list=G_vars,
       global_step=tf.train.get_or_create_global_step())
