@@ -309,6 +309,12 @@ def train(named_id_to_fps, args):
     G_opt = tf.train.AdamOptimizer(learning_rate=1e-4)
     D_opt = tf.train.AdamOptimizer(learning_rate=1e-4)
 
+    # Summarize
+    tf.summary.scalar('G_loss', G_loss)
+    tf.summary.scalar('D_loss', D_loss)
+    tf.summary.scalar('convergence')
+    tf.summary.scalar('k_t')
+
   G_train_op = G_opt.minimize(G_loss, var_list=G_vars,
       global_step=tf.train.get_or_create_global_step())
   D_train_op = D_opt.minimize(D_loss, var_list=D_vars)
