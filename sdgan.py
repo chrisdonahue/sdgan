@@ -299,7 +299,8 @@ def train(named_id_to_fps, args):
     G_loss = D_loss_G_z
 
     # Update training stabilizer
-    k_update_op = tf.clip_by_value(tf.assign_add(k_t, args.began_lambda_k * balance), 0, 1)
+    k_tp1 = tf.clip_by_value(k_t + args.began_lambda_k * balance, 0, 1)
+    k_update_op = tf.assign(k_t, k_tp1)
 
     # Measure convergence
     convergence = D_loss_x + tf.abs(balance)
