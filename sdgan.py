@@ -288,18 +288,21 @@ def train(named_id_to_fps, args):
     else:
       raise NotImplementedError()
   else:
-    # Create loss
+    # Calculate autoencoder L1 error
     D_loss_x = tf.reduce_mean(tf.abs(D_x - x))
     D_loss_G_z = tf.reduce_mean(tf.abs(D_G_z - G_z))
+    balance = args.began_gamma * D_loss_x - D_loss_G_z
+
+    # Create loss
     k_t = tf.Variable(0., trainable=False, name='k_t')
     D_loss = D_loss_x - k_t * D_loss_G_z
-    G_loss = tf.reduce_mean(D_loss_G_z)
+    G_loss = D_loss_G_z
 
     # Update training stabilizer
-    k_update_op = tf.assign_add(k_t, args.began_lambda_k * (args.began_gamma * D_loss_x - D_loss_G_z))
+    k_update_op = tf.clip_by_value(tf.assign_add(k_t, args.began_lambda_k * balance), 0, 1)
 
     # Measure convergence
-    convergence = D_loss_x + tf.abs(args.began_gamma * D_loss_x - D_loss_G_z)
+    convergence = D_loss_x + tf.abs(balance)
 
     # Create optimizers
     G_opt = tf.train.AdamOptimizer(learning_rate=1e-4)
