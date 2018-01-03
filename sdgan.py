@@ -6,6 +6,7 @@ import time
 
 import tensorflow as tf
 
+from began import BEGANGenerator64x64, SDBEGANDiscriminator64x64
 from dcgan import DCGANGenerator64x64, SDDCGANDiscriminator64x64
 from util import str2bool, decode_png_observation, encode_png_observation
 
@@ -141,7 +142,10 @@ def train(named_id_to_fps, args):
   # Make generator
   with tf.variable_scope('G'):
     z = tf.reshape(z, [args.train_batch_size * args.train_k, args.model_d_i + args.model_d_o])
-    G_z = DCGANGenerator64x64(z, args.nch, dim=args.dcgan_dim, train=True)
+    if args.dcgan:
+      G_z = DCGANGenerator64x64(z, args.nch, dim=args.dcgan_dim, train=True)
+    else:
+      G_z = BEGANGenerator64x64(z, args.nch, hidden_num=args.began_nhidden)
     G_z = tf.reshape(G_z, [args.train_batch_size, args.train_k, args.height, args.width, args.nch])
   G_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='G')
 
@@ -162,7 +166,10 @@ def train(named_id_to_fps, args):
 
   # Make real discriminator
   with tf.name_scope('D_x'), tf.variable_scope('D'):
-    D_x = SDDCGANDiscriminator64x64(x, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
+    if args.dcgan:
+      D_x = SDDCGANDiscriminator64x64(x, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
+    else:
+      D_x = SDBEGANDiscriminator64x64(x, hidden_num=args.began_nhidden)
   D_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='D')
 
   # Print D summary
@@ -179,7 +186,10 @@ def train(named_id_to_fps, args):
 
   # Make fake discriminator
   with tf.name_scope('D_G_z'), tf.variable_scope('D', reuse=True):
-    D_G_z = SDDCGANDiscriminator64x64(G_z, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
+    if args.dcgan:
+      D_G_z = SDDCGANDiscriminator64x64(G_z, dim=args.dcgan_dim, siamese=args.dcgan_disc_siamese)
+    else:
+      D_G_z = SDBEGANDiscriminator64x64(G_z, hidden_num=args.began_nhidden)
 
   # Create loss
   D_clip_weights = None
@@ -457,13 +467,19 @@ def infer(named_id_to_fps, args):
 
   # Execute generator
   with tf.variable_scope('G'):
-    G_z = DCGANGenerator64x64(z, args.nch, dim=args.dcgan_dim)
+    if args.dcgan:
+      G_z = DCGANGenerator64x64(z, args.nch, dim=args.dcgan_dim)
+    else:
+      G_z = BEGANGenerator64x64(z, args.nch, hidden_num=args.began_nhidden)
   G_z = tf.identity(G_z, name='G_z')
 
   # Execute generator on grid
   z_grid = tf.reshape(z_grid, [zi_n * zo_n, args.model_d_i + args.model_d_o])
   with tf.variable_scope('G', reuse=True):
-    G_z_grid = DCGANGenerator64x64(z_grid, args.nch, dim=args.dcgan_dim)
+    if args.dcgan:
+      G_z_grid = DCGANGenerator64x64(z_grid, args.nch, dim=args.dcgan_dim)
+    else:
+      G_z_grid = BEGANGenerator64x64(z_grid, args.nch, hidden_num=args.began_nhidden)
   G_z_grid = tf.reshape(G_z_grid, [zi_n, zo_n, args.height, args.width, args.nch], name='G_z_grid')
 
   # Encode to uint8

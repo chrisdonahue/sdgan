@@ -10,7 +10,7 @@ slim = tf.contrib.slim
   z shape during training: [b * k, d_i + d_o]
   z shape during inference: [None, d_i + d_o]
 """
-def BEGANGenerator64x64(z, hidden_num=128):
+def BEGANGenerator64x64(z, nch, hidden_num=128):
   repeat_num = 4
   data_format = 'NHWC'
 
@@ -24,7 +24,7 @@ def BEGANGenerator64x64(z, hidden_num=128):
     if idx < repeat_num - 1:
       x = upscale(x, 2, data_format)
 
-  out = slim.conv2d(x, 3, 3, 1, activation_fn=None, data_format=data_format)
+  out = slim.conv2d(x, nch, 3, 1, activation_fn=None, data_format=data_format)
 
   return out
 
@@ -40,6 +40,7 @@ def SDBEGANDiscriminator64x64(x, hidden_num=128):
   d_o = 50
 
   k = int(x.get_shape()[1])
+  nch = int(x.get_shape()[4])
   xs = tf.split(x, k, axis=1)
 
   # Siamese encoder
@@ -78,7 +79,7 @@ def SDBEGANDiscriminator64x64(x, hidden_num=128):
     with tf.variable_scope('decoder', reuse=reuse):
       # Decoder
       num_output = int(np.prod([8, 8, hidden_num]))
-      x = slim.fully_connected(x, num_output, activation_fn=None)
+      x = slim.fully_connected(z, num_output, activation_fn=None)
       x = reshape(x, 8, 8, hidden_num, data_format)
 
       for idx in range(repeat_num):
@@ -87,7 +88,7 @@ def SDBEGANDiscriminator64x64(x, hidden_num=128):
         if idx < repeat_num - 1:
           x = upscale(x, 2, data_format)
 
-      D_x = slim.conv2d(x, input_channel, 3, 1, activation_fn=None, data_format=data_format)
+      D_x = slim.conv2d(x, nch, 3, 1, activation_fn=None, data_format=data_format)
       D_xs.append(D_x)
     reuse=True
 
