@@ -47,6 +47,7 @@ def SDBEGANDiscriminator64x64(x, hidden_num=128):
   zs = []
   reuse = False
   for x in xs:
+    x = x[:, 0]
     with tf.variable_scope('encoder', reuse=reuse):
       x = slim.conv2d(x, hidden_num, 3, 1, activation_fn=tf.nn.elu, data_format=data_format)
 
