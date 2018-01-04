@@ -3,7 +3,7 @@ TRAIN_DIR=./train
 #rm -rf ${TRAIN_DIR}
 mkdir ${TRAIN_DIR}
 git rev-parse HEAD > ${TRAIN_DIR}/git_sha.txt
-cp train.sh ${TRAIN_DIR}
+cp train_began.sh ${TRAIN_DIR}
 
 python sdgan.py train ${TRAIN_DIR} \
 	--data_dir ./data/msceleb12k \
