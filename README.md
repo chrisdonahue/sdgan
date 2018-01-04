@@ -8,8 +8,6 @@ Semantically decomposed GANs (SD-GANs) learn a decomposed latent space separatin
 	<img src="assets/sdbegan_faces.png">
 </p>
 
-Currently, only the SD-DCGAN model is implemented here; SD-BEGAN forthcoming.
-
 ## Instructions
 
 Download one or both of the compressed datasets to `sdgan/data`:
@@ -22,7 +20,7 @@ Run training:
 1. Navigate to: `sdgan/data`
 1. Extract a dataset: `tar xvfz msceleb12k.tar.gz`
 1. Navigate to: `sdgan`
-1. Run training: `./train.sh`
+1. Run training: `./train_{dcgan,began}.sh`
 1. Navigate to: `sdgan/train`
 1. (*Optional*) Run grid visualization: `./prev.sh`
 1. Run tensorboard: `tensorboard --logdir=.`
