@@ -4,7 +4,7 @@ import shutil
 bundle_dir = 'bundle'
 
 paths = [
-  'ckpts/sdbegan_548235_small',
+  'ckpts/dcgan_ckpt',
   'css',
   'img',
   'js/deeplearn-0.3.2.min.js',
