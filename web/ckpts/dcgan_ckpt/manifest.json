@@ -1,0 +1,171 @@
+{
+  "G/upconv_2d_0/batch_normalization/beta": {
+    "filename": "G_upconv_2d_0_batch_normalization_beta", 
+    "shape": [
+      256
+    ]
+  }, 
+  "G/upconv_2d_0/batch_normalization/gamma": {
+    "filename": "G_upconv_2d_0_batch_normalization_gamma", 
+    "shape": [
+      256
+    ]
+  }, 
+  "G/upconv_2d_0/batch_normalization/moving_mean": {
+    "filename": "G_upconv_2d_0_batch_normalization_moving_mean", 
+    "shape": [
+      256
+    ]
+  }, 
+  "G/upconv_2d_0/batch_normalization/moving_variance": {
+    "filename": "G_upconv_2d_0_batch_normalization_moving_variance", 
+    "shape": [
+      256
+    ]
+  }, 
+  "G/upconv_2d_0/conv2d_transpose/bias": {
+    "filename": "G_upconv_2d_0_conv2d_transpose_bias", 
+    "shape": [
+      256
+    ]
+  }, 
+  "G/upconv_2d_0/conv2d_transpose/kernel": {
+    "filename": "G_upconv_2d_0_conv2d_transpose_kernel", 
+    "shape": [
+      5, 
+      5, 
+      256, 
+      512
+    ]
+  }, 
+  "G/upconv_2d_1/batch_normalization/beta": {
+    "filename": "G_upconv_2d_1_batch_normalization_beta", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/upconv_2d_1/batch_normalization/gamma": {
+    "filename": "G_upconv_2d_1_batch_normalization_gamma", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/upconv_2d_1/batch_normalization/moving_mean": {
+    "filename": "G_upconv_2d_1_batch_normalization_moving_mean", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/upconv_2d_1/batch_normalization/moving_variance": {
+    "filename": "G_upconv_2d_1_batch_normalization_moving_variance", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/upconv_2d_1/conv2d_transpose/bias": {
+    "filename": "G_upconv_2d_1_conv2d_transpose_bias", 
+    "shape": [
+      128
+    ]
+  }, 
+  "G/upconv_2d_1/conv2d_transpose/kernel": {
+    "filename": "G_upconv_2d_1_conv2d_transpose_kernel", 
+    "shape": [
+      5, 
+      5, 
+      128, 
+      256
+    ]
+  }, 
+  "G/upconv_2d_2/batch_normalization/beta": {
+    "filename": "G_upconv_2d_2_batch_normalization_beta", 
+    "shape": [
+      64
+    ]
+  }, 
+  "G/upconv_2d_2/batch_normalization/gamma": {
+    "filename": "G_upconv_2d_2_batch_normalization_gamma", 
+    "shape": [
+      64
+    ]
+  }, 
+  "G/upconv_2d_2/batch_normalization/moving_mean": {
+    "filename": "G_upconv_2d_2_batch_normalization_moving_mean", 
+    "shape": [
+      64
+    ]
+  }, 
+  "G/upconv_2d_2/batch_normalization/moving_variance": {
+    "filename": "G_upconv_2d_2_batch_normalization_moving_variance", 
+    "shape": [
+      64
+    ]
+  }, 
+  "G/upconv_2d_2/conv2d_transpose/bias": {
+    "filename": "G_upconv_2d_2_conv2d_transpose_bias", 
+    "shape": [
+      64
+    ]
+  }, 
+  "G/upconv_2d_2/conv2d_transpose/kernel": {
+    "filename": "G_upconv_2d_2_conv2d_transpose_kernel", 
+    "shape": [
+      5, 
+      5, 
+      64, 
+      128
+    ]
+  }, 
+  "G/upconv_2d_3/conv2d_transpose/bias": {
+    "filename": "G_upconv_2d_3_conv2d_transpose_bias", 
+    "shape": [
+      3
+    ]
+  }, 
+  "G/upconv_2d_3/conv2d_transpose/kernel": {
+    "filename": "G_upconv_2d_3_conv2d_transpose_kernel", 
+    "shape": [
+      5, 
+      5, 
+      3, 
+      64
+    ]
+  }, 
+  "G/z_project/batch_normalization/beta": {
+    "filename": "G_z_project_batch_normalization_beta", 
+    "shape": [
+      512
+    ]
+  }, 
+  "G/z_project/batch_normalization/gamma": {
+    "filename": "G_z_project_batch_normalization_gamma", 
+    "shape": [
+      512
+    ]
+  }, 
+  "G/z_project/batch_normalization/moving_mean": {
+    "filename": "G_z_project_batch_normalization_moving_mean", 
+    "shape": [
+      512
+    ]
+  }, 
+  "G/z_project/batch_normalization/moving_variance": {
+    "filename": "G_z_project_batch_normalization_moving_variance", 
+    "shape": [
+      512
+    ]
+  }, 
+  "G/z_project/dense/bias": {
+    "filename": "G_z_project_dense_bias", 
+    "shape": [
+      8192
+    ]
+  }, 
+  "G/z_project/dense/kernel": {
+    "filename": "G_z_project_dense_kernel", 
+    "shape": [
+      100, 
+      8192
+    ]
+  }
+}

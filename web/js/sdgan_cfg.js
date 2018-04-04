@@ -11,7 +11,7 @@ window.sdgan = window.sdgan || {};
             mobileWarning: 'Warning: This demo runs a neural network in your browser. It appears you are on a mobile device. Consider running the demo on your laptop instead. Continue?'
         },
         net: {
-            ckpt_dir: 'ckpts/dumped',
+            ckpt_dir: 'ckpts/dcgan_ckpt',
             ckpt_dim: 64,
             d_i: 50,
             d_o: 50,
