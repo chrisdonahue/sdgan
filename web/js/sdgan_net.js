@@ -75,98 +75,45 @@ window.sdgan = window.sdgan || {};
         _zo = deeplearn.Array1D.new(_zo);
 
         var _output = m.scope(function () {
-            // Hacky implementation of ELU... Super slow :(
-            function elu(x) {
-                x_pos = m.multiply(x, m.step(x));
+            function batchnorm(x, name) {
+                var mean = net.vars[name + '/batch_normalization/moving_mean'];
+                var variance = net.vars[name + '/batch_normalization/moving_variance'];
+                var scale = net.vars[name + '/batch_normalization/gamma'];
+                var offset = net.vars[name + '/batch_normalization/beta'];
 
-                x_neg = m.sub(x, x_pos);
-                x_neg = m.exp(x_neg);
-                x_neg = m.sub(x_neg, deeplearn.Scalar.new(1.));
-
-                return m.add(x_neg, x_pos);
+                return m.batchNormalization3D(x, mean, variance, 0.001, scale, offset);
             };
 
-            // Hacky implementation of nearest neighbors integer upscale...
-            function nn_upscale(x, s) {
-                /*
-                    NumPy implementation for nearest-neighbor upscaling 2x2 color image
-
-                    _x = np.arange(12).reshape([2, 2, 3])
-
-                    _x = np.stack([_x.copy(), _x.copy()], axis=1)
-                    _x = np.reshape(_x, [4, 2, 3])
-
-                    _x = np.stack([_x.copy(), _x.copy()], axis=2)
-                    _x = np.reshape(_x, [4, 4, 3])
-                */
-
-                var h = x.shape[0];
-                var w = x.shape[1];
-                var nch = x.shape[2];
-
-                x = x.as4D(h, 1, w, nch);
-                x = m.concat4D(x, x, 1);
-                x = x.reshape([h * s, w, nch]);
-
-                x = x.as4D(h * s, w, 1, nch);
-                x = m.concat4D(x, x, 2);
-                x = x.reshape([h * s, w * s, nch]);
-
-                return x;
-            };
+            var dim = cfg.net.ckpt_dim;
 
             // Concat identity and observation vector [100]
             var x = m.concat1D(_zi, _zo);
 
-            // Project to [8, 8, 128]
-            x = m.vectorTimesMatrix(x, net.vars['G/fully_connected/weights']);
-            x = m.add(x, net.vars['G/fully_connected/biases']);
-            x = x.reshape([128, 8, 8]);
-            x = m.switchDim(x, [1, 2, 0]);
+            // Project to [4, 4, 1024]
+            x = m.vectorTimesMatrix(x, net.vars['G/z_project/dense/kernel']);
+            x = m.add(x, net.vars['G/z_project/dense/bias']);
+            x = x.reshape([4, 4, 8 * dim]);
+            x = batchnorm(x, 'G/z_project');
+            x = m.relu(x);
 
-            // Conv 0
-            x = m.conv2d(x, net.vars['G/Conv/weights'], net.vars['G/Conv/biases'], [1, 1], 'same');
-            x = elu(x);
+            // Conv 0 to [8, 8, 512]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_0/conv2d_transpose/kernel'], [8, 8, 4 * dim], [2, 2], 'same');
+            x = batchnorm(x, 'G/upconv_2d_0');
+            x = m.relu(x);
 
-            // Conv 1
-            x = m.conv2d(x, net.vars['G/Conv_1/weights'], net.vars['G/Conv_1/biases'], [1, 1], 'same');
-            x = elu(x);
+            // Conv 1 to [16, 16, 256]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_1/conv2d_transpose/kernel'], [16, 16, 2 * dim], [2, 2], 'same');
+            x = batchnorm(x, 'G/upconv_2d_1');
+            x = m.relu(x);
 
-            // Upscale to [16, 16, 128]
-            x = nn_upscale(x, 2);
+            // Conv 2 to [32, 32, 128]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_2/conv2d_transpose/kernel'], [32, 32, 1 * dim], [2, 2], 'same');
+            x = batchnorm(x, 'G/upconv_2d_2');
+            x = m.relu(x);
 
-            // Conv 2
-            x = m.conv2d(x, net.vars['G/Conv_2/weights'], net.vars['G/Conv_2/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 3
-            x = m.conv2d(x, net.vars['G/Conv_3/weights'], net.vars['G/Conv_3/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Upscale to [32, 32, 128]
-            x = nn_upscale(x, 2);
-
-            // Conv 4
-            x = m.conv2d(x, net.vars['G/Conv_4/weights'], net.vars['G/Conv_4/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 5
-            x = m.conv2d(x, net.vars['G/Conv_5/weights'], net.vars['G/Conv_5/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Upscale to [64, 64, 128]
-            x = nn_upscale(x, 2);
-
-            // Conv 6
-            x = m.conv2d(x, net.vars['G/Conv_6/weights'], net.vars['G/Conv_6/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 7
-            x = m.conv2d(x, net.vars['G/Conv_7/weights'], net.vars['G/Conv_7/biases'], [1, 1], 'same');
-            x = elu(x);
-
-            // Conv 8 to [64, 64, 3]
-            x = m.conv2d(x, net.vars['G/Conv_8/weights'], net.vars['G/Conv_8/biases'], [1, 1], 'same');
+            // Conv 3 to [64, 64, 3]
+            x = m.conv2dTranspose(x, net.vars['G/upconv_2d_3/conv2d_transpose/kernel'], [64, 64, 3], [2, 2], 'same');
+            x = m.tanh(x);
 
             // Denorm image and clip
             x = m.add(x, deeplearn.Scalar.new(1.));
