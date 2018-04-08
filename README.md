@@ -8,7 +8,7 @@ Semantically decomposed GANs (SD-GANs) learn a decomposed latent space separatin
 	<img src="assets/sdbegan_faces.png">
 </p>
 
-Currently, only the SD-DCGAN model is implemented here; SD-BEGAN forthcoming.
+We are currently in the process of improving the code for SD-BEGAN in the [`began` branch](https://github.com/chrisdonahue/sdgan/tree/began). This branch is usable but does not produce results on par with our paper yet. To reproduce the SD-BEGAN results from our paper, please use [this code (zip file)](https://github.com/chrisdonahue/sdgan/raw/master/assets/sdbegan_paper.zip), a fork of [`BEGAN-tensorflow`](https://github.com/carpedm20/BEGAN-tensorflow).
 
 ## Instructions
 
