@@ -40,11 +40,11 @@ To add new datasets, follow the naming convention in the prepackaged ones above.
 If you use this dataset in your research, cite via the following BibTeX:
 
 ```
-@article{donahue2017sdgan,
+@inproceedings{donahue2018sdgan,
   title={Semantically Decomposing the Latent Spaces of Generative Adversarial Networks},
   author={Donahue, Chris and Lipton, Zachary C and Balsubramani, Akshay and McAuley, Julian},
-  journal={arXiv:1705.07904},
-  year={2017}
+  booktitle={ICLR},
+  year={2018}
 }
 ```
 
